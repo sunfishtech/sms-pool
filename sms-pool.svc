@@ -1,0 +1,50 @@
+service SmsPool
+
+version 1.0
+author "Nathan Stults"
+
+document SmsMessage {
+  required:
+  id string
+  to string
+  message string
+  status enum [ REQUESTED, ENQUEUED, SENT, DELIVERED, FAILED ] (REQUESTED)
+
+  optional:
+  from string
+  callbackUrl string
+}
+
+partial message Event {
+  required:
+  eventId string
+  timestamp date
+}
+
+partial message ErrorEvent extends Event {
+  required:
+  error string
+}
+
+
+/* Commands */
+command SendMessage extends Message {
+  #Submits an SMS message to be sent via the configured provider
+} emits MessageEnqueued extends Event
+  fails with MessageRejected extends ErrorEvent
+
+command AddNumbers {
+  required:
+  quantity integer (1)
+} emits NumbersAdded extends Event {
+  numbers list[string]
+}
+
+/* Queries */
+query AvailableNumbersQuery {
+  #Request a list of all available numbers
+} responds with AvailableNumbers {
+  required:
+  numbers list[string]
+}
+
