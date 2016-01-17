@@ -9,7 +9,6 @@ export const STATUS = {
 };
 
 export default Record({
-  /* Required Fields */
   id: String,
   to: String,
   message: String,

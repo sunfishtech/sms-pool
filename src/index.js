@@ -1,6 +1,6 @@
 import { Reader } from 'ramda-fantasy';
 import { List } from 'immutable';
-
+import { promiseToFuture } from './utils';
 import * as messages from './messages';
 import * as vendors from './vendors';
 
@@ -11,20 +11,26 @@ import * as vendors from './vendors';
  */
 
 /*
-  SmsMessage -> Future (Object { message_id: String })
-*/
-export function sendMessage(message) {
-
-}
-
-/*
   () -> Reader Env (Future Error AvailableNumbers)
 */
 export function fetchAvailableNumbers() {
   return Reader(env =>
-      env.smsApi.getAvailableNumbers().map((numbers) =>
-        new messages.AvailableNumbers({ numbers: List(numbers) })
+      promiseToFuture(env.smsApi.getAvailableNumbers)
+        .map((numbers) =>
+          new messages.AvailableNumbers({ numbers: List(numbers) })
     )
+  );
+}
+
+/*
+  SmsMessage -> Future Error MessageAccepted })
+*/
+export function sendMessage(message) {
+  return Reader(env =>
+    promiseToFuture(env.smsApi.sendMessage, message)
+      .map((id) =>
+        new messages.MessageAccepted({messageId: message.id, vendorId: id})
+      )
   );
 }
 
