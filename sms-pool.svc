@@ -28,10 +28,12 @@ partial message ErrorEvent extends Event {
 
 
 /* Commands */
+#Submits an SMS message to be sent via the configured provider
 command SendMessage extends Message {
-  #Submits an SMS message to be sent via the configured provider
-} emits MessageEnqueued extends Event
-  fails with MessageRejected extends ErrorEvent
+} emits MessageEnqueued extends Event {
+  messageId string
+}
+fails with MessageRejected extends ErrorEvent
 
 command AddNumbers {
   required:
@@ -41,8 +43,8 @@ command AddNumbers {
 }
 
 /* Queries */
+#Request a list of all available numbers
 query AvailableNumbersQuery {
-  #Request a list of all available numbers
 } responds with AvailableNumbers {
   required:
   numbers list[string]
