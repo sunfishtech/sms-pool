@@ -1,7 +1,7 @@
 import chai from 'chai';
 import R from 'ramda';
-import Plivo from '../../src/vendors/plivo';
-import { SmsApi } from '../../src/vendors/sms-api';
+import Plivo from '../../src/sms-providers/plivo';
+import { SmsApi } from '../../src/sms-providers/sms-api';
 import SmsMessage from '../../src/messages/sms-message';
 
 chai.expect();

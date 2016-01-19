@@ -16,5 +16,5 @@ export default Record({
   /* Optional Fields */
   from: Maybe(String),
   callbackUrl: Maybe(String)
-});
+}, 'SmsMessage');
 

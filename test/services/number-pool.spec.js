@@ -1,7 +1,8 @@
 import chai from 'chai';
-import NumberPool from '../src/number-pool.js';
+import NumberPool from '../../src/services/number-pool.js';
 import { Future } from 'ramda-fantasy';
-import { SmsMessage } from '../src/messages';
+import { SmsMessage } from '../../src/messages';
+import { MemoryCache } from '../../src/utils';
 
 chai.expect();
 
@@ -12,7 +13,7 @@ var reader, numberPool, message;
 
 describe("Given a NumberPool",function(){
   before(() => {
-      reader = new NumberPool();
+      reader = NumberPool();
   });
   
   it("should be a Reader", () => { assert(reader.run, "NumberPool() does not return a reader")});
@@ -20,7 +21,7 @@ describe("Given a NumberPool",function(){
   describe("when run against an environment",function(){
     before(() => {
       const api = { getAvailableNumbers: () => Promise.resolve(['a','b','c'])};
-      const env = { smsApi: api };
+      const env = { smsApi: api, cache: new MemoryCache() };
       numberPool = reader.run(env);
     });
     it("should return an instantiated api",() => {
