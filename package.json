@@ -2,11 +2,12 @@
   "name": "sms-pool",
   "version": "1.0.0",
   "description": "Send some sms messages to someone.",
-  "main": "lib/sms-pool.js",
+  "main": "lib/index.js",
   "scripts": {
-    "build": "WEBPACK_ENV=build webpack",
+    "build": "./node_modules/.bin/babel -d lib src/",
     "dev": "./node_modules/eslint-watch/bin/esw ./src --watch",
-    "test": "mocha --compilers js:babel-core/register  --colors -w --recursive ./test"
+    "test": "mocha --compilers js:babel-core/register  --colors -w --recursive ./test",
+    "prepublish": "./node_modules/./babel/babel -d lib src/"
   },
   "devDependencies": {
     "babel": "6.3.13",
@@ -24,8 +25,7 @@
     "eslint-watch": "^2.1.4",
     "json-loader": "^0.5.4",
     "mocha": "2.3.4",
-    "source-map-support": "^0.4.0",
-    "webpack": "1.12.9"
+    "source-map-support": "^0.4.0"
   },
   "repository": {
     "type": "git",
