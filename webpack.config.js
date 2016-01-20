@@ -22,7 +22,8 @@ var config = {
     filename: outputFile,
     library: libraryName,
     libraryTarget: 'umd',
-    umdNamedDefine: true
+    umdNamedDefine: true,
+    target:'node'
   },
   module: {
     loaders: [
@@ -42,13 +43,7 @@ var config = {
     modulesDirectories: ['src','node_modules'],
     extensions: ['', '.js','.json']
   },
-  plugins: plugins,
-  node: {
-    console: true,
-    fs: 'empty',
-    net: 'empty',
-    tls: 'empty'
-  }
+  plugins: plugins
 };
 
 module.exports = config;

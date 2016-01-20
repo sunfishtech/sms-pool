@@ -2,14 +2,14 @@ import chai from 'chai';
 import NumberPool from '../../src/services/number-pool.js';
 import { Future } from 'ramda-fantasy';
 import { SmsMessage } from '../../src/messages';
-import { MemoryCache } from '../../src/utils';
+import { MemoryCache } from '../../src/services/in-memory';
 
 chai.expect();
 
 const expect = chai.expect;
 const assert = chai.assert;
 
-var reader, numberPool, message;
+var reader, numberPool, message, env;
 
 describe("Given a NumberPool",function(){
   before(() => {
@@ -21,7 +21,7 @@ describe("Given a NumberPool",function(){
   describe("when run against an environment",function(){
     before(() => {
       const api = { getAvailableNumbers: () => Promise.resolve(['a','b','c'])};
-      const env = { smsApi: api, cache: new MemoryCache() };
+      env = { smsApi: api, cache: new MemoryCache() };
       numberPool = reader.run(env);
     });
     it("should return an instantiated api",() => {
@@ -36,6 +36,23 @@ describe("Given a NumberPool",function(){
         numberPool.availableNumbers().fork(function(err){done(err)},//err callback
           function(result) {
             expect(result.numbers.toJS()).to.eql(['a','b','c']);
+            done();
+          }
+        );
+      });
+      it("should cache retrieved numbers", (done) => {
+        numberPool.availableNumbers().fork(function(err){done(err)},//err callback
+          function(result) {
+            expect(env.cache.get('NumberPool.available_numbers')).to.eql(['a','b','c']);
+            done();
+          }
+        );
+      });
+      it("should get numbers from the cache if present", function(done){
+        env.cache.set('NumberPool.available_numbers', ['hi','from','cachey!']);
+        numberPool.availableNumbers().fork(function(err){done(err)},//err callback
+          function(result) {
+            expect(result.numbers.toJS()).to.eql(['hi','from','cachey!']);
             done();
           }
         );

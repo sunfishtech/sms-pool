@@ -8,8 +8,8 @@ chai.expect();
 const expect = chai.expect;
 const assert = chai.assert;
 
-var reader, messageQueue, storage;
-const message = new SmsMessage({id:'id',to:'to',message:'msg'});
+var reader, messageQueue, queue, qName;
+const message = new SmsMessage({id:'id',to:'to',message:'msg', from:'me'});
 
 describe("Given a MessageQueue",function(){
   before(() => {
@@ -21,8 +21,7 @@ describe("Given a MessageQueue",function(){
   describe("when run against an environment",function(){
     before(() => {
       const api = {
-        enqueueMessage: (msg) => { storage = [msg]; return Promise.resolve(true)},
-        dequeueMessage: () => { return Promise.resolve({messageId:"123"})},
+        enqueueMessage: (msg) => { queue = msg; return Promise.resolve(msg)},
         ackMessage: (msg) => { return Promise.resolve(true) }
       };
       const env = { messageQueue: api };
@@ -30,7 +29,6 @@ describe("Given a MessageQueue",function(){
     });
     it("should return an instantiated api",() => {
       assert(messageQueue.enqueueMessage, "An enqueueMessage method is not defined on the MessageQueue API");
-      assert(messageQueue.dequeueMessage, "A dequeueMessage method is not definded on the MessageQueue API");
     });
     describe("MessageQueue ~> enqueueMessage", function() {
       it("should return a Future", () => {
@@ -44,23 +42,10 @@ describe("Given a MessageQueue",function(){
           }
         );
       });
-      it("should enqueue the message", function(done){
+      it("should enqueue a message", function(done){
         messageQueue.enqueueMessage(message).fork(function(err){done(err)},//err callback
           function(result) {
-            expect(storage[0]).to.equal(message);
-            done();
-          }
-        );
-      });
-    });
-    describe("MessageQueue ~> dequeueMessage", function() {
-      it("should return a Future", () => {
-        assert(messageQueue.dequeueMessage().fork, "MessageQueue ~> dequeueMessage did not return a future");
-      });
-      it("should return a MessageTag", (done) => {
-        messageQueue.dequeueMessage().fork(function(err){done(err)},
-          function(result) {
-            expect(result.messageId).to.equal("123");
+            expect(queue).to.eql(message);
             done();
           }
         );

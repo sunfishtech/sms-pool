@@ -1,3 +1,3 @@
 export default {
-  plivo: require('./plivo')
+  Plivo: require('./plivo')
 };

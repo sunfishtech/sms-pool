@@ -1,7 +1,7 @@
 import chai from 'chai';
 import { Future } from 'ramda-fantasy';
 import { Typed } from 'typed-immutable';
-import { MemoryCache } from '../../src/utils';
+import { MemoryCache } from '../../src/services/in-memory';
 import { EnqueueMessage } from '../../src/pipelines';
 import { SmsMessage } from '../../src/messages';
 chai.expect();
@@ -30,7 +30,7 @@ describe("Given an SmsMessage", function(){
         const env = {
           smsApi: { getAvailableNumbers: () => Promise.resolve(['a','b','c']) },
           cache: new MemoryCache(),
-          messageQueue: { enqueueMessage: (msg) => { queue = msg; return Promise.resolve(true) } },
+          messageQueue: { enqueueMessage: (msg) => { queue = msg; return Promise.resolve(msg) } },
           messageStore: { put: (msg) => { storage = msg; return Promise.resolve(true) } }
         };
         pipeline = reader.run(env);
@@ -56,10 +56,10 @@ describe("Given an SmsMessage", function(){
             }
           )
         });
-        it("enqueues the message", (done) => {
+        it("enqueues a Message", (done) => {
           future.fork((err) => done(err),
             (res) => {
-              expect(queue).to.equal(res);
+              expect(queue).to.eql(res);
               done();
             }
           )

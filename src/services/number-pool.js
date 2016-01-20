@@ -4,6 +4,9 @@ import { List } from 'immutable';
 import NodeRing from 'consistent-hashing';
 import R from 'ramda';
 import { AvailableNumbers } from '../messages';
+import { MemoryCache } from '../services/in-memory';
+
+const NP_CACHE_KEY = 'NumberPool.available_numbers';
 
 /* :: NodeRing -> String -> String */
 const lookupNumber = R.curry((key, nodeRing) =>
@@ -12,11 +15,13 @@ const lookupNumber = R.curry((key, nodeRing) =>
 
 /* :: NodeRing -> Message -> Message */
 const ensureFromField = R.curry((message, nodeRing) =>
-  R.ifElse(
-    R.prop('from'),
-    R.identity,
-    (msg) => msg.set('from', lookupNumber(msg.to, nodeRing))
-  )(message)
+  message.from ? message :
+    message.set('from', lookupNumber(message.to, nodeRing))
+);
+
+/* :: -> String -> Cache -> Value */
+const cacheValue = R.curry((key, cache, value) =>
+  R.tap(v => cache.set(key, v), value)
 );
 
 /* :: Array String -> NodeRing */
@@ -30,18 +35,22 @@ function fetchAvailableNumbers(smsApi) {
 }
 
 /* :: SmsApi -> Future Error NodeRing */
-function createNumberPool(smsApi) {
-  return fetchAvailableNumbers(smsApi).map(createNodeRing);
+function createNumberPool(smsApi, cache) {
+  const nums =
+    R.ifElse(
+      k => cache.has(k) && R.is(Array, cache.get(k)),
+      k => Future.of(cache.get(k)),
+      k => fetchAvailableNumbers(smsApi).map(cacheValue(k, cache))
+    );
+
+  return Future.of(NP_CACHE_KEY).chain(nums).map(createNodeRing);
 }
 
 export default function NumberPool() {
-  const NP_CACHE_KEY = 'NumberPool.numberPool';
+  const _cache = new MemoryCache();
 
   return Reader(env => {
-    // this will need to become a var or let when the API get an addPhoneNumbe method
-    const numberPool = env.cache.get(NP_CACHE_KEY,
-      () => Future.cache(createNumberPool(env.smsApi))
-    );
+    const numberPool = createNumberPool(env.smsApi, env.cache || _cache);
 
     return {
       /* :: () -> Future Error AvailableNumbers */

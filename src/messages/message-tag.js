@@ -1,6 +1,7 @@
 import { Record } from 'typed-immutable';
 
 export default Record({
-  messageId: String
+  messageId: String,
+  queue: String
 }, 'MessageTag');
 

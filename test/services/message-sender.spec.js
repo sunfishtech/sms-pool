@@ -2,6 +2,7 @@ import chai from 'chai';
 import MessageSender from '../../src/services/message-sender.js';
 import { Future } from 'ramda-fantasy';
 import { SmsMessage } from '../../src/messages';
+import RateLimiter from '../../src/services/rate-limiter';
 
 chai.expect();
 
@@ -21,7 +22,7 @@ describe("Given a MessageSender",function(){
   describe("when run against an environment",function(){
     before(() => {
       const api = { sendMessage: (msg) => { sent = msg; return Promise.resolve(true)} };
-      const env = { smsApi: api };
+      const env = { smsApi: api, rateLimiter: RateLimiter(1000,1) };
       messageSender = reader.run(env);
     });
     it("should return an instantiated api",() => {

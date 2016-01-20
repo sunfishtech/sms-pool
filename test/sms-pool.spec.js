@@ -1,12 +1,19 @@
 import chai from 'chai';
-import * as sms from '../src/index';
-import { Future } from 'ramda-fantasy';
-import { MemoryCache } from '../src/utils';
-import { Typed } from 'typed-immutable';
+import SmsPool from '../src/index';
 
 chai.expect();
 
 const expect = chai.expect;
 const assert = chai.assert;
 
-assert(true, "Oh what a night...");
+describe("Let's do this thing!", () => {
+  it("should do it", () => {
+    // SmsPool().sendMessage("17074777548", "I want to hear it ding").fork(
+    //   (err) => done(err),
+    //   (res) => {
+    //     console.log("done with",res);
+    //     //done();
+    //   }
+    // );
+  });
+});
