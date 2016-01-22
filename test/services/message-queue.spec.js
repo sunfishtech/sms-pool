@@ -1,7 +1,7 @@
 import chai from 'chai';
 import MessageQueue from '../../src/services/message-queue.js';
 import { Future } from 'ramda-fantasy';
-import { SmsMessage } from '../../src/messages';
+import { SmsMessage, SmsMessageStatus } from '../../src/messages';
 
 chai.expect();
 
@@ -34,10 +34,10 @@ describe("Given a MessageQueue",function(){
       it("should return a Future", () => {
         assert(messageQueue.enqueueMessage(message).fork, "MessageQueue ~> enqueueMessage did not return a future");
       });
-      it("should return the same message", function(done){
+      it("update the status to ENQUEUED", function(done){
         messageQueue.enqueueMessage(message).fork(function(err){done(err)},//err callback
           function(result) {
-            expect(result).to.equal(message);
+            expect(result.status).to.equal(SmsMessageStatus.ENQUEUED);
             done();
           }
         );

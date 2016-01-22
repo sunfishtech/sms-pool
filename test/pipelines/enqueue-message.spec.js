@@ -3,7 +3,8 @@ import { Future } from 'ramda-fantasy';
 import { Typed } from 'typed-immutable';
 import { MemoryCache } from '../../src/services/in-memory';
 import { EnqueueMessage } from '../../src/pipelines';
-import { SmsMessage } from '../../src/messages';
+import { SmsMessage, SmsMessageStatus } from '../../src/messages';
+
 chai.expect();
 
 const expect = chai.expect;
@@ -14,11 +15,9 @@ var reader, future;
 
 var msg;
 describe("Given an SmsMessage", function(){
-  before(() =>
-    msg = new SmsMessage({
-      id:'i', to:'2', message:'message'
-    })
-  );
+  before(() => {
+    msg = { to:'2', message:'message' };
+  });
   describe("EnqueueMessage", function(){
     let queue, storage, pipeline;
     before(() => reader = EnqueueMessage);
@@ -30,8 +29,9 @@ describe("Given an SmsMessage", function(){
         const env = {
           smsApi: { getAvailableNumbers: () => Promise.resolve(['a','b','c']) },
           cache: new MemoryCache(),
-          messageQueue: { enqueueMessage: (msg) => { queue = msg; return Promise.resolve(msg) } },
-          messageStore: { put: (msg) => { storage = msg; return Promise.resolve(true) } }
+          messageQueue: { enqueueMessage: (m) => { queue = m; return Promise.resolve(m) } },
+          messageStore: { put: (m) => { storage = m; return Promise.resolve(true) } },
+          idGenerator: { next: () => '12345' }
         };
         pipeline = reader.run(env);
         future = pipeline(msg);
@@ -48,6 +48,14 @@ describe("Given an SmsMessage", function(){
             }
           )
         });  
+        it("generates a message id", (done) => {
+          future.fork((err) => done(err),
+            (res) => {
+              expect(res.id).to.equal('12345');
+              done();
+            }
+          );
+        });
         it("appends a sending phone number", (done) => {
           future.fork((err) => done(err),
             (res) => {
@@ -59,12 +67,20 @@ describe("Given an SmsMessage", function(){
         it("enqueues a Message", (done) => {
           future.fork((err) => done(err),
             (res) => {
-              expect(queue).to.eql(res);
+              expect(queue[Typed.typeName]()).to.equal('SmsMessage');
               done();
             }
           )
         });
-        it("stores the message", (done) => {
+        it("updates the status to ENQUEUED", (done) => {
+          future.fork((err) => done(err),
+            (res) => {
+              expect(res.status).to.equal(SmsMessageStatus.ENQUEUED);
+              done();
+            }
+          )
+        });
+        it("stores the final message", (done) => {
           future.fork((err) => done(err),
             (res) => {
               expect(storage).to.equal(res);

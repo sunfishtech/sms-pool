@@ -4,7 +4,10 @@ import { Subject } from 'rx';
 
 export default function MemoryQueue() {
   const subject = new Subject();
-  const enqueue = (message) => { subject.onNext(message); return message; };
+  const enqueue = (message) => {
+    subject.onNext(message);
+    return message;
+  };
 
   /* util funcs */
   const toPromise = val => Promise.resolve(val);

@@ -3,7 +3,7 @@ import { Future } from 'ramda-fantasy';
 import { Typed } from 'typed-immutable';
 import { MemoryCache } from '../../src/services/in-memory';
 import { SendNextMessage } from '../../src/pipelines';
-import { SmsMessage } from '../../src/messages';
+import { SmsMessage, SmsMessageStatus } from '../../src/messages';
 import RateLimiter from '../../src/services/rate-limiter';
 chai.expect();
 
@@ -35,7 +35,7 @@ describe("SendNextMessage", function(){
           put: (msg) => { storage = msg; return Promise.resolve(true)},
           get: (id) => { return Promise.resolve({'123':message}[id]) }
         },
-        smsApi: { sendMessage: (msg) => { sent = msg; return Promise.resolve(true) } },
+        smsApi: { sendMessage: (msg) => { sent = msg; return Promise.resolve('123456') } },
         rateLimiter: RateLimiter(1000,1) /* 1000 messages per MS */
       };
       pipeline = reader.run(env);
@@ -57,7 +57,7 @@ describe("SendNextMessage", function(){
       it("sends a message", (done) => {
         future.fork((err) => done(err),
           (res) => {
-            expect(sent).to.equal(res);
+            expect(sent).to.equal(message);
             done();
           }
         )

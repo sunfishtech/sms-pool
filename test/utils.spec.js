@@ -1,6 +1,8 @@
 import chai from 'chai';
-import { promiseToFuture, MemoryCache, pipeF } from '../src/utils';
-import { Future } from 'ramda-fantasy';
+import { promiseToFuture, MemoryCache, pipeF, validateObject, Schema } from '../src/utils';
+import { Future, Either } from 'ramda-fantasy';
+import Joi from 'joi';
+const { validate, string, number } = Joi;
 chai.expect();
 
 const expect = chai.expect;
@@ -49,4 +51,36 @@ describe("Given a set of future returning functions", function(){
       );
     });
   }); 
+});
+
+describe("Given a Joi schema", function(){
+  let schema, validate;
+  before(() => {
+    schema = Schema({
+      name: string().required(),
+      age: number().required()
+    });
+    validate = validateObject(schema, {});
+  });
+  describe("validateObject", function(){
+    describe("applied to an invalid input", function(){
+      it("should return a Left", () => {
+        expect(validate({}).isLeft).to.be.true;
+      });
+      it("that brought a few errors home from the party", () => {
+        expect(validate({}).value.toString())
+          .to.contain('"name" is required')
+          .and.to.contain('"age" is required');
+      });
+    });
+    describe("applied to a valid input", function(){
+      it("should return a Right", () => {
+        expect(validate({name:'hi',age:1}).isRight).to.be.true;        
+      });
+      it("should return the original object", () => {
+        const obj = {name:'hi', age:1};
+        expect(validate(obj).value).to.eql(obj);
+      });
+    });
+  });
 });

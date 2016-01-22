@@ -1,4 +1,5 @@
 import { Record, Maybe } from 'typed-immutable';
+import { curry } from 'ramda';
 
 export const STATUS = {
   REQUESTED: 'REQUESTED',
@@ -15,6 +16,11 @@ export default Record({
   status: String(STATUS.REQUESTED),
   /* Optional Fields */
   from: Maybe(String),
-  callbackUrl: Maybe(String)
+  callbackUrl: Maybe(String),
+  vendorId: Maybe(String)
 }, 'SmsMessage');
 
+/* :: STATUS -> SmsMessage */
+export const setStatus = curry((status, message) =>
+  message.set('status', status)
+);

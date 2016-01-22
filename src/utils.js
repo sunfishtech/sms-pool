@@ -1,5 +1,7 @@
 import R from 'ramda';
-import { Future, Reader } from 'ramda-fantasy';
+import { Future, Reader, Either } from 'ramda-fantasy';
+import Joi from 'joi';
+import S from 'string';
 
 /*
  Converts a Promise returning function into a Future
@@ -40,7 +42,8 @@ export function execOrReturn(funcOrVal) {
   :: Map String Reader -> Reader Env (...args -> Future)
 */
 export function createPipeline(pipelineConfig) {
-  const readers = pipelineConfig.with.map(execOrReturn);
+  const readers = pipelineConfig.with.map(execOrReturn)
+    .concat(Reader.ask); // this will pass the environment as the last argument to yield
   const readerPipeline = R.sequence(Reader.of, readers);
 
   return readerPipeline.map((executedReaders) => {
@@ -49,3 +52,47 @@ export function createPipeline(pipelineConfig) {
     return R.is(Array, res) ? pipeF(...res) : res;
   });
 }
+
+export function getOrThrow(either) {
+  if (either.isRight) return either.value;
+  throw either.value;
+}
+
+const validationToEither = R.ifElse(
+  res => res.error,
+  res => Either.Left(TypeError(res.error.details.map(x => x.message).join(', '))),
+  res => Either.Right(res.value)
+);
+
+const validationOptions = {abortEarly: false};
+
+export const validateObject = R.curry((schema, options, object) => {
+  const opts = Object.assign(validationOptions, options);
+
+  return validationToEither(Joi.validate(object, schema, opts));
+});
+
+export const ensureValidObject = R.curry((schema, options, object) =>
+  getOrThrow(validateObject(schema, options, object))
+);
+
+export const Schema = (schemaDef) => Joi.object().keys(schemaDef);
+
+export const underscore = (str) => S(str).underscore().toString();
+export const upperCamelCase = (str) => S(str).capitalize().camelize().toString();
+
+export const Try = (fn) => {
+  try {
+    return Either.Right(fn());
+  } catch (err) {
+    return Either.Left(err);
+  }
+};
+
+export const TryFuture = (fn) => {
+  const maybe = Try(fn);
+
+  return Future((reject, resolve) =>
+    maybe.isRight ? resolve(maybe.value) : reject(maybe.value)
+  );
+};

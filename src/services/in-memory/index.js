@@ -1,5 +1,6 @@
 export default {
   MemoryQueue: require('./queue'),
   MemoryStore: require('./store'),
-  MemoryCache: require('./cache')
+  MemoryCache: require('./cache'),
+  MemoryEventBus: require('./event-bus')
 };

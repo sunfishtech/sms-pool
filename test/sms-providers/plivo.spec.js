@@ -32,7 +32,7 @@ describe('Given an invalid configuration', function () {
   describe("attempting to create an API",function() {
     it("should fail", function(){
       var fn = () => Plivo({});
-      expect(fn).to.throw(Error);
+      expect(fn).to.throw(TypeError);
     });
   });
 });

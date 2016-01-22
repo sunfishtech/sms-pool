@@ -1,7 +1,7 @@
 import chai from 'chai';
 import MessageSender from '../../src/services/message-sender.js';
 import { Future } from 'ramda-fantasy';
-import { SmsMessage } from '../../src/messages';
+import { SmsMessage, SmsMessageStatus } from '../../src/messages';
 import RateLimiter from '../../src/services/rate-limiter';
 
 chai.expect();
@@ -21,7 +21,7 @@ describe("Given a MessageSender",function(){
 
   describe("when run against an environment",function(){
     before(() => {
-      const api = { sendMessage: (msg) => { sent = msg; return Promise.resolve(true)} };
+      const api = { sendMessage: (msg) => { sent = msg; return Promise.resolve('123456')} };
       const env = { smsApi: api, rateLimiter: RateLimiter(1000,1) };
       messageSender = reader.run(env);
     });
@@ -32,10 +32,10 @@ describe("Given a MessageSender",function(){
       it("should return a Future", () => {
         assert(messageSender.sendMessage(message).fork, "MessageSender ~> sendMessage did not return a future");
       });
-      it("should return the same message", function(done){
+      it("should set the status to sent", function(done){
         messageSender.sendMessage(message).fork(function(err){done(err)},//err callback
           function(result) {
-            expect(result).to.equal(message);
+            expect(result.status).to.equal(SmsMessageStatus.SENT);
             done();
           }
         );
@@ -44,6 +44,14 @@ describe("Given a MessageSender",function(){
         messageSender.sendMessage(message).fork(function(err){done(err)},//err callback
           function(result) {
             expect(sent).to.equal(message);
+            done();
+          }
+        );
+      });
+      it("should set the vendors identifier", function(done){
+        messageSender.sendMessage(message).fork(function(err){done(err)},//err callback
+          function(result) {
+            expect(result.vendorId).to.equal('123456');
             done();
           }
         );
