@@ -40,10 +40,10 @@ describe("Given an SmsMessage", function(){
         assert(future.fork, `${future} does not appear to be a Future`);
       });
       describe("that when forked", function(){
-        it("returns an SmsMessage", (done) => {
+        it("returns a MessageEnqueued event", (done) => {
           future.fork((err) => done(err),
             (res) => {
-              expect(res[Typed.typeName]()).to.equal('SmsMessage');
+              expect(res[Typed.typeName]()).to.equal('MessageEnqueued');
               done();
             }
           )
@@ -51,7 +51,7 @@ describe("Given an SmsMessage", function(){
         it("generates a message id", (done) => {
           future.fork((err) => done(err),
             (res) => {
-              expect(res.id).to.equal('12345');
+              expect(res.messageId).to.equal('12345');
               done();
             }
           );
@@ -59,7 +59,7 @@ describe("Given an SmsMessage", function(){
         it("appends a sending phone number", (done) => {
           future.fork((err) => done(err),
             (res) => {
-              expect(['a','b','c']).to.include(res.from);
+              expect(['a','b','c']).to.include(storage.from);
               done();
             }
           )
@@ -75,7 +75,7 @@ describe("Given an SmsMessage", function(){
         it("updates the status to ENQUEUED", (done) => {
           future.fork((err) => done(err),
             (res) => {
-              expect(res.status).to.equal(SmsMessageStatus.ENQUEUED);
+              expect(storage.status).to.equal(SmsMessageStatus.ENQUEUED);
               done();
             }
           )
@@ -83,7 +83,7 @@ describe("Given an SmsMessage", function(){
         it("stores the final message", (done) => {
           future.fork((err) => done(err),
             (res) => {
-              expect(storage).to.equal(res);
+              expect(storage.id).to.equal(res.messageId);
               done();
             }
           )

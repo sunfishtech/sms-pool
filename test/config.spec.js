@@ -33,7 +33,7 @@ describe("Given a a valid configuration", function(){
     });
     it("that contains all configured services", () => {
       const services = createServices(createConfig(config));
-      expect(services).to.have.all.keys(serviceKeys);
+      expect(services.toJS()).to.have.all.keys(serviceKeys);
       serviceKeys.forEach((key) => {
         expect(services[key]).not.to.be.null;
       });

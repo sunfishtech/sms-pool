@@ -16,6 +16,13 @@ export function promiseToFuture(f, ...args) {
   );
 }
 
+export function callbackToPromise(fn, ...args) {
+  return new Promise((resolve, reject) => {
+    const handler = (err, res) => err ? reject(err) : resolve(res);
+    fn(...(args.concat([handler])));
+  });
+}
+
 /*
  Performs left-to-right composition of one or more chainable functions.
  The leftmost function may have any arity; the remaining functions must be unary.

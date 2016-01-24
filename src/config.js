@@ -4,6 +4,7 @@ import { contains, sequence, zipObj } from 'ramda';
 import { Either } from 'ramda-fantasy';
 import * as providers from './sms-providers';
 import * as services from './services';
+import { Record } from 'immutable';
 
 const AVAILABLE_PROVIDERS = Object.keys(providers).map(underscore);
 const AVAILABLE_SERVICES = Object.keys(services).map(underscore);
@@ -79,5 +80,5 @@ export function createServices(config) {
   ));
   const names = ['smsApi', 'messageStore', 'messageQueue', 'cache', 'rateLimiter', 'eventBus', 'idGenerator'];
 
-  return zipObj(names, instances);
+  return new Record(zipObj(names, instances))();
 }

@@ -1,4 +1,3 @@
-
 import R from 'ramda';
 import { Subject } from 'rx';
 

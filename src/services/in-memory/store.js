@@ -1,4 +1,3 @@
-
 import R from 'ramda';
 
 export default function MemoryStore() {
