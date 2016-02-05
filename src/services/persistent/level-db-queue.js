@@ -1,8 +1,8 @@
 import { string } from 'joi';
-import { Schema, ensureValidObject, callbackToPromise } from '../../utils';
+import { Schema, ensureValidObject } from '../../utils';
 import path from 'path';
 import levelup from 'level';
-import { Subject } from 'rx';
+import { Subject, Observable } from 'rx';
 
 const LevelDbConfig = Schema({
   dataDir: string().default('./data'),
@@ -21,23 +21,23 @@ export default function LevelDbQueue(_config = {}) {
   const enqueue = (message) => {
     const data = message.toJS ? message.toJS() : message;
 
-    return callbackToPromise(_db.put.bind(_db), data.id, data)
-      .then(_ => broadcastMessage(message));
+    return Observable.fromNodeCallback(_db.put.bind(_db))(data.id, data)
+      .map(_ => broadcastMessage(message));
   };
 
   const isInQueue = (id) =>
-    callbackToPromise(_db.get.bind(_db), id).then((ok) => true, (err) =>
-      err.notFound ? false : Promise.reject(err)
-    );
+    Observable.fromNodeCallback(_db.get.bind(_db))(id)
+      .catch(err => err.notFound ? Observable.just(false) : Observable.throw(err))
+      .map(ok => !!ok);
 
   const ack = (message) =>
-    callbackToPromise(_db.del.bind(_db), message.id);
+    Observable.fromNodeCallback(_db.del.bind(_db))(message.id);
 
-  const purgeQueue = () => new Promise((resolve, reject) => {
+  const purgeQueue = () => Observable.create(observer => {
     _db.createKeyStream()
       .on('data', (key) => _db.del(key))
-      .on('end', () => resolve(true))
-      .on('error', (err) => reject(err));
+      .on('end', () => observer.onNext(true))
+      .on('error', (err) => observer.onError(err));
   });
 
   const requeueAll = () =>
@@ -51,7 +51,7 @@ export default function LevelDbQueue(_config = {}) {
     /* :: { messageId: String, queue: String } -> Promise { messageId: String, queue: String } */
     enqueueMessage: enqueue,
     /* :: { messageId: String, queue: String } -> Promise Boolean */
-    ackMessage: ack, 
+    ackMessage: ack,
     /* :: (SmsMessage -> _) -> (Err -> _) -> (_ -> _) -> Rx.Subscription */
     subscribe: (onMessage, onErr, onComplete) => subject.subscribe(onMessage, onErr, onComplete),
     /* :: String -> Promise Boolean Error */

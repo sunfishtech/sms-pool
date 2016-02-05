@@ -3,9 +3,9 @@ import { Fn } from '../types';
 
 export const SmsApi = Record({
 
-  /* () -> Promise (List String) Error */
+  /* () -> Observable (List String) */
   getAvailableNumbers: Fn,
 
-  /*  SmsMessage -> Promise MessageAccepted Error */
+  /*  SmsMessage ->  Observable SmsMessage */
   sendMessage: Fn
 });

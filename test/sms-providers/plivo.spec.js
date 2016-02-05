@@ -28,7 +28,7 @@ const validConfig = {
   }
 };
 
-describe('Given an invalid configuration', function () {
+describe('Given a Plivo API and invalid configuration', function () {
   describe("attempting to create an API",function() {
     it("should fail", function(){
       var fn = () => Plivo({});
@@ -37,7 +37,7 @@ describe('Given an invalid configuration', function () {
   });
 });
 
-describe("Given a valid configuration", function() {
+describe("Given a Plivo API and a valid configuration", function() {
   describe("creating an API",function(){
     before(()=> api = Plivo(validConfig));
     it("should be succesful",() => {
@@ -46,10 +46,10 @@ describe("Given a valid configuration", function() {
 
     describe("getAvailableNumbers", function(){
       it("should return a Promise", function(){
-        assert(api.getAvailableNumbers().then);
+        assert(api.getAvailableNumbers().subscribe, "getAvailableNumbers did not return an Observable");
       });
       it("that settles with phone numbers", (done)=>{
-        api.getAvailableNumbers().then(
+        api.getAvailableNumbers().subscribe(
           function(res){
             expect(res).to.eql(['a','b']);
             done();
@@ -64,23 +64,23 @@ describe("Given a valid configuration", function() {
       before(()=>{
         msg = new SmsMessage({id: 'i', from: 'f', to: 't', message: 'm'});
       });
-      it("should return a Promise", function(){
-        assert(api.sendMessage(msg).then);
+      it("should return am Observable", function(){
+        assert(api.sendMessage(msg).subscribe, "sendMessage did not return an Observable");
       });
       it("supplies a proper payload", (done) => {
-        api.sendMessage(msg).then(function(res){
+        api.sendMessage(msg).subscribe(function(res){
           expect(payload).to.eql({ src: 'f', dst: 't', text: 'm' });
           done();
         });
       });
       it("supplies the callback if provided", (done) => {
-        api.sendMessage(msg.set("callbackUrl","cb")).then(function(rest){
+        api.sendMessage(msg.set("callbackUrl","cb")).subscribe(function(res){
           expect(payload).to.eql({ src: 'f', dst: 't', text: 'm', url: 'cb' });
           done();
         });
       });
       it("that settles with a message id", (done) => {
-        api.sendMessage(msg).then(
+        api.sendMessage(msg).subscribe(
           function(res){
             expect(res).to.eql('1');
             done();
@@ -101,7 +101,7 @@ if (smoke_test_api && process.env.PLIVO_AUTH_ID && process.env.PLIVO_AUTH_TOKEN)
       });
     });
     it("should fetch numbers from Plivo",(done)=>{
-      api.getAvailableNumbers().then(
+      api.getAvailableNumbers().subscribe(
         (res) => { expect(res).to.be.instanceOf(Array); done(); },
         (err) => { done(err); }
       );
@@ -114,7 +114,7 @@ if (smoke_test_api && process.env.PLIVO_AUTH_ID && process.env.PLIVO_AUTH_TOKEN)
           to: process.env.PLIVO_TEST_RECIPIENT,
           message:'ho ho ho'
         });
-        api.sendMessage(msg).then(
+        api.sendMessage(msg).subscribe(
           (res) => { expect(typeof res).to.eq('string'); done(); },
           (err) => { done(err) }
         );

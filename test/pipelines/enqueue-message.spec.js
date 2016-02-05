@@ -1,9 +1,9 @@
 import chai from 'chai';
-import { Future } from 'ramda-fantasy';
 import { Typed } from 'typed-immutable';
 import { MemoryCache } from '../../src/services/in-memory';
 import { EnqueueMessage } from '../../src/pipelines';
 import { SmsMessage, SmsMessageStatus } from '../../src/messages';
+import { Observable } from 'rx';
 
 chai.expect();
 
@@ -11,7 +11,7 @@ const expect = chai.expect;
 const assert = chai.assert;
 
 var lib;
-var reader, future;
+var reader, obs;
 
 var msg;
 describe("Given an SmsMessage", function(){
@@ -27,21 +27,21 @@ describe("Given an SmsMessage", function(){
     describe("when run against an environment", function(){
       before(() => {
         const env = {
-          smsApi: { getAvailableNumbers: () => Promise.resolve(['a','b','c']) },
+          smsApi: { getAvailableNumbers: () => Observable.just(['a','b','c']) },
           cache: new MemoryCache(),
-          messageQueue: { enqueueMessage: (m) => { queue = m; return Promise.resolve(m) } },
-          messageStore: { put: (m) => { storage = m; return Promise.resolve(true) } },
+          messageQueue: { enqueueMessage: (m) => { queue = m; return Observable.just(m) } },
+          messageStore: { put: (m) => { storage = m; return Observable.just(m) } },
           idGenerator: { next: () => '12345' }
         };
         pipeline = reader.run(env);
-        future = pipeline(msg);
+        obs = pipeline(msg);
       });
-      it("should return a future", ()=>{
-        assert(future.fork, `${future} does not appear to be a Future`);
+      it("should return an Observable", ()=>{
+        expect(obs).to.respondTo('subscribe');
       });
-      describe("that when forked", function(){
+      describe("that when subscribed", function(){
         it("returns a MessageEnqueued event", (done) => {
-          future.fork((err) => done(err),
+          obs.subscribe(
             (res) => {
               expect(res[Typed.typeName]()).to.equal('MessageEnqueued');
               done();
@@ -49,15 +49,15 @@ describe("Given an SmsMessage", function(){
           )
         });  
         it("generates a message id", (done) => {
-          future.fork((err) => done(err),
+          obs.subscribe(
             (res) => {
-              expect(res.messageId).to.equal('12345');
+              expect(res.message.id).to.equal('12345');
               done();
             }
           );
         });
         it("appends a sending phone number", (done) => {
-          future.fork((err) => done(err),
+          obs.subscribe(
             (res) => {
               expect(['a','b','c']).to.include(storage.from);
               done();
@@ -65,7 +65,7 @@ describe("Given an SmsMessage", function(){
           )
         });
         it("enqueues a Message", (done) => {
-          future.fork((err) => done(err),
+          obs.subscribe(
             (res) => {
               expect(queue[Typed.typeName]()).to.equal('SmsMessage');
               done();
@@ -73,7 +73,7 @@ describe("Given an SmsMessage", function(){
           )
         });
         it("updates the status to ENQUEUED", (done) => {
-          future.fork((err) => done(err),
+          obs.subscribe(
             (res) => {
               expect(storage.status).to.equal(SmsMessageStatus.ENQUEUED);
               done();
@@ -81,9 +81,9 @@ describe("Given an SmsMessage", function(){
           )
         });
         it("stores the final message", (done) => {
-          future.fork((err) => done(err),
+          obs.subscribe(
             (res) => {
-              expect(storage.id).to.equal(res.messageId);
+              expect(storage.id).to.equal(res.message.id);
               done();
             }
           )

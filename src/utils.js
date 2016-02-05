@@ -1,36 +1,11 @@
 import R from 'ramda';
-import { Future, Reader, Either } from 'ramda-fantasy';
+import { Reader, Either } from 'ramda-fantasy';
 import Joi from 'joi';
 import S from 'string';
 
-/*
- Converts a Promise returning function into a Future
- :: ((..args) -> Promise A Error) -> Future Error A
- */
-export function promiseToFuture(f, ...args) {
-  return Future((reject, resolve) =>
-    f(...args).then(
-      (response) => resolve(response),
-      (err) => reject(err)
-    )
-  );
-}
-
-export function callbackToPromise(fn, ...args) {
-  return new Promise((resolve, reject) => {
-    const handler = (err, res) => err ? reject(err) : resolve(res);
-    fn(...(args.concat([handler])));
-  });
-}
-
-/*
- Performs left-to-right composition of one or more chainable functions.
- The leftmost function may have any arity; the remaining functions must be unary.
- :: List (a -> Functor) -> (a -> Functor)
-*/
-export function pipeF(...fns) {
+export function pipeObs(...fns) {
   return function (...args) {
-    const chainer = (comp, fn) => comp.chain(fn);
+    const chainer = (comp, fn) => comp.flatMap(fn);
     const initFn = R.head(fns)(...args);
 
     return R.reduce(chainer, initFn, R.tail(fns));
@@ -56,7 +31,7 @@ export function createPipeline(pipelineConfig) {
   return readerPipeline.map((executedReaders) => {
     const res = pipelineConfig.yield(...executedReaders);
 
-    return R.is(Array, res) ? pipeF(...res) : res;
+    return R.is(Array, res) ? pipeObs(...res) : res;
   });
 }
 
@@ -94,12 +69,4 @@ export const Try = (fn) => {
   } catch (err) {
     return Either.Left(err);
   }
-};
-
-export const TryFuture = (fn) => {
-  const maybe = Try(fn);
-
-  return Future((reject, resolve) =>
-    maybe.isRight ? resolve(maybe.value) : reject(maybe.value)
-  );
 };

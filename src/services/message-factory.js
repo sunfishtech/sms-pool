@@ -1,6 +1,6 @@
 import { Reader } from 'ramda-fantasy';
 import { curry, assoc, is } from 'ramda';
-import { TryFuture } from '../utils';
+import { Observable } from 'rx';
 
 const appendId = (idField, idGen, data) => assoc(idField, idGen.next(), data);
 
@@ -8,7 +8,7 @@ const createMessage = (messageType, idField, idGen, message) => {
   const data = is(String, idField) ?
     appendId(idField, idGen, message) : message;
 
-  return TryFuture(() => messageType(data));
+  return Observable.just(data).map(messageType);
 };
 
 export default function MessageFactory() {

@@ -1,7 +1,7 @@
 import { SendNextMessage, EnqueueMessage } from './pipelines';
 import { curry } from 'ramda';
 import { createConfig, createServices } from './config';
-import { MessageAccepted } from './messages';
+import ServiceError from './messages/service-error';
 
 const createEnvironment = (services) => services; // should be a record
 
@@ -13,6 +13,9 @@ const startServices = (services) =>
 
 const disposeServices = (services) =>
   services.forEach((svc) => { if (svc.dispose) svc.dispose(); });
+
+const ERROR_TOPIC = 'errors';
+const MESSAGE_SENDER_TOPIC = 'sentMessages';
 
 /* consider a per-command context that wraps the
    future pipeline and has an 'execute' and 'subscribe'
@@ -39,17 +42,34 @@ export default function SmsPool(_config) {
   const sendMessage = executePipeline(SendNextMessage);
   const submitMessage = executePipeline(EnqueueMessage);
 
-  initServices(svcs);
-  svcs.messageQueue.subscribe(
-    (message) => sendMessage(message).fork(
-      (err) => events.publishError(err),
-      (res) => events.publish(new MessageAccepted({messageId: res.id, vendorId: res.vendorId}))
-    ),
-    (err) => events.publishError(err),
-    (done) => {}
+  const publishEvent = curry((topic, evt) =>
+    events.publish(evt, topic)
+      .retry(3)
+      .subscribeOnError(err => { throw err; })
   );
+
+  const publishError = err => {
+    return events.publish(ERROR_TOPIC, new ServiceError({error: err.message}))
+      .subscribeOnError(err => { throw err; });
+  };
+
+  const listenForEnqueuedMessages = () => {
+    svcs.messageQueue.subscribe(
+      message => sendMessage(message)
+        .do(publishEvent(MESSAGE_SENDER_TOPIC))
+        .subscribeOnError(publishError)
+      ,
+      publishError
+    );
+  };
+
+  /* Startup Sequence */
+
+  initServices(svcs);
+  listenForEnqueuedMessages();
   startServices(svcs);
 
+  /* API */
   return {
     services: svcs,
     events: events,

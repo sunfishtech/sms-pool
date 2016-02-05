@@ -2,6 +2,7 @@ import chai from 'chai';
 import MessageStore from '../../src/services/message-store.js';
 import { Future } from 'ramda-fantasy';
 import { SmsMessage } from '../../src/messages';
+import { Observable } from 'rx';
 
 chai.expect();
 
@@ -21,21 +22,21 @@ describe("Given a MessageStore",function(){
   describe("when run against an environment",function(){
     before(() => {
       const api = {
-        put: (msg) => { storage = [msg]; return Promise.resolve(true)},
-        get: (id) => { return Promise.resolve({[id]:message}[id]) }
+        put: (msg) => { storage = [msg]; return Observable.just(msg)},
+        get: (id) => { return Observable.just({[id]:message}[id]) }
       };
       const env = { messageStore: api };
       messageStore = reader.run(env);
     });
     it("should return an instantiated api",() => {
-      assert(messageStore.storeMessage, "An storeMessage method is not defined on the MessageStore API");
+      expect(messageStore).to.respondTo('storeMessage');
     });
     describe("MessageStore ~> storeMessage", function() {
-      it("should return a Future", () => {
-        assert(messageStore.storeMessage(message).fork, "MessageStore ~> storeMessage did not return a future");
+      it("should return an Observable", () => {
+        expect(messageStore.storeMessage(message)).to.respondTo('subscribe');
       });
       it("should return the same message", function(done){
-        messageStore.storeMessage(message).fork(function(err){done(err)},//err callback
+        messageStore.storeMessage(message).subscribe(
           function(result) {
             expect(result).to.equal(message);
             done();
@@ -43,7 +44,7 @@ describe("Given a MessageStore",function(){
         );
       });
       it("should store the message", function(done){
-        messageStore.storeMessage(message).fork(function(err){done(err)},//err callback
+        messageStore.storeMessage(message).subscribe(
           function(result) {
             expect(storage[0]).to.equal(message);
             done();
@@ -52,11 +53,11 @@ describe("Given a MessageStore",function(){
       });
     });
     describe("MessageStore ~> getMessage", function() {
-      it("should return a Future", () => {
-        assert(messageStore.getMessage('123').fork, "MessageStore ~> getMessage did not return a future");
+      it("should return an Observable", () => {
+        expect(messageStore.getMessage('123')).to.respondTo('subscribe');
       });
       it("should return a message", function(done){
-        messageStore.getMessage('123').fork(function(err){done(err)},//err callback
+        messageStore.getMessage('123').subscribe(
           function(result) {
             expect(result.toJS()).to.eql(message.toJS());
             done();

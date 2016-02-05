@@ -1,6 +1,5 @@
-import { Subject } from 'rx';
+import { Subject, Observable } from 'rx';
 import MemoryCache from './cache';
-import { compose } from 'ramda';
 
 export default function EventBus() {
   const DEFAULT_TOPIC = '__default__';
@@ -12,27 +11,23 @@ export default function EventBus() {
   const publishMessage = (message, topic = DEFAULT_TOPIC) => {
     getTopic(DEFAULT_TOPIC).onNext(message);
     if (topic !== DEFAULT_TOPIC) getTopic(topic).onNext(message);
-    return message;
+    return Observable.just(message);
   };
 
-  const publishError = (error, topic = DEFAULT_TOPIC) => {
+  const throwError = (error, topic = DEFAULT_TOPIC) => {
     getTopic(DEFAULT_TOPIC).onError(error);
     if (topic !== DEFAULT_TOPIC) getTopic(topic).onError(error);
-    return error;
+    return Observable.just(error);
   };
 
   const subscribeToTopic = (topic, onMessage, onErr, onComplete) =>
     getTopic(topic).subscribe(onMessage, onErr, onComplete);
 
-  /* util funcs */
-  const toPromise = val => Promise.resolve(val);
-  const promise = fn => compose(toPromise, fn);
-
   return {
-    /* :: Object -> String -> Promise Object Error */
-    publish: promise(publishMessage),
-    /* :: Error -> Promise Error Error */
-    publishError: promise(publishError),
+    /* :: Object -> String -> Observable Object */
+    publish: publishMessage,
+    /* :: Error -> Observable Error */
+    throw: throwError,
     /* :: String -> (SmsMessage -> _) -> (Err -> _) -> (_ -> _) -> Rx.Subscription */
     subscribe: (topic, onMessage, onErr, onComplete) =>
       subscribeToTopic(topic, onMessage, onErr, onComplete),

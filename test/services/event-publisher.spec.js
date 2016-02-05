@@ -1,6 +1,6 @@
 import chai from 'chai';
 import EventPublisher from '../../src/services/event-publisher.js';
-import { Future } from 'ramda-fantasy';
+import { Observable } from 'rx';
 
 chai.expect();
 
@@ -19,41 +19,41 @@ describe("Given an EventPublisher",function(){
   describe("when run against an environment",function(){
     beforeEach(() => {
       const api = {
-        publish: (e, t) => { evt = e; topic = t; return Promise.resolve(evt)},
+        publish: (e, t) => { evt = e; topic = t; return Observable.just(evt)},
       };
       const env = { eventBus: api };
       publisher = reader.run(env);
       evt = undefined; topic = undefined;
     });
     it("should return an instantiated api",() => {
-      assert(publisher.publish, "A publish method is not defined on the EventBus API");
-      assert(publisher.broadcast, "A broadcast method is not defined on the EventBus API");
+      expect(publisher).to.respondTo('publish');
+      expect(publisher).to.respondTo('broadcast');
     });
     describe("EventPublisher ~> broadcast", function() {
-      it("should return a Future", () => {
-        expect(publisher.broadcast({})).to.respondTo('fork');
+      it("should return an Observable", () => {
+        expect(publisher.broadcast({})).to.respondTo('subscribe');
       });
       it("should broadcast an event", function(done){
-        publisher.broadcast({an:'event'}).fork(function(err){done(err)},//err callback
+        publisher.broadcast({an:'event'}).subscribe(
           function(result) {
             expect(evt).to.eql({an:'event'});
             expect(topic).to.be.undefined;
             done();
-          }
+          }, err => done(err)
         );
       });
     });
     describe("EventPublisher ~> publish", function() {
-      it("should return a future", () => {
-        expect(publisher.publish('t',{})).to.respondTo('fork');
+      it("should return an Observable", () => {
+        expect(publisher.publish('t',{})).to.respondTo('subscribe');
       })
       it("should publish an event to a topic", (done) => {
-        publisher.publish('mytopic', {another:'event'}).fork(function(err){done(err)},
+        publisher.publish('mytopic', {another:'event'}).subscribe(
           function(result) {
             expect(evt).to.eql({another:'event'});
             expect(topic).to.eql('mytopic');
             done();
-          }
+          }, err => done(err)
         );
       });
     });

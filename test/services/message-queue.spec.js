@@ -1,7 +1,7 @@
 import chai from 'chai';
 import MessageQueue from '../../src/services/message-queue.js';
-import { Future } from 'ramda-fantasy';
 import { SmsMessage, SmsMessageStatus } from '../../src/messages';
+import { Observable } from 'rx';
 
 chai.expect();
 
@@ -21,8 +21,8 @@ describe("Given a MessageQueue",function(){
   describe("when run against an environment",function(){
     before(() => {
       const api = {
-        enqueueMessage: (msg) => { queue = msg; return Promise.resolve(msg)},
-        ackMessage: (msg) => { return Promise.resolve(true) }
+        enqueueMessage: (msg) => { queue = msg; return Observable.just(msg)},
+        ackMessage: (msg) => { return Observable.just(msg) }
       };
       const env = { messageQueue: api };
       messageQueue = reader.run(env);
@@ -31,36 +31,36 @@ describe("Given a MessageQueue",function(){
       assert(messageQueue.enqueueMessage, "An enqueueMessage method is not defined on the MessageQueue API");
     });
     describe("MessageQueue ~> enqueueMessage", function() {
-      it("should return a Future", () => {
-        assert(messageQueue.enqueueMessage(message).fork, "MessageQueue ~> enqueueMessage did not return a future");
+      it("should return an Observable", () => {
+        assert(messageQueue.enqueueMessage(message).subscribe, "MessageQueue ~> enqueueMessage did not return an Observable");
       });
       it("update the status to ENQUEUED", function(done){
-        messageQueue.enqueueMessage(message).fork(function(err){done(err)},//err callback
+        messageQueue.enqueueMessage(message).subscribe(
           function(result) {
             expect(result.status).to.equal(SmsMessageStatus.ENQUEUED);
             done();
-          }
+          },function(err){done(err)}
         );
       });
       it("should enqueue a message", function(done){
-        messageQueue.enqueueMessage(message).fork(function(err){done(err)},//err callback
+        messageQueue.enqueueMessage(message).subscribe(
           function(result) {
             expect(queue).to.eql(message);
             done();
-          }
+          },function(err){done(err)}
         );
       });
     });
     describe("MessageQueue ~> ackMessage", function() {
-      it("should return a Future", () => {
-        assert(messageQueue.ackMessage(message).fork, "MessageQueue ~> ackMessage did not return a future");
+      it("should return an Observable", () => {
+        assert(messageQueue.ackMessage(message).subscribe, "MessageQueue ~> ackMessage did not return an Observable");
       });
       it("should return the same message", function(done){
-        messageQueue.ackMessage(message).fork(function(err){done(err)},//err callback
+        messageQueue.ackMessage(message).subscribe(
           function(result) {
             expect(result).to.equal(message);
             done();
-          }
+          },function(err){done(err)}
         );
       });
     });

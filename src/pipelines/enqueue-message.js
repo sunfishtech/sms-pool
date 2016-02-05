@@ -1,4 +1,4 @@
-import { Future } from 'ramda-fantasy';
+import { Observable } from 'rx';
 import Pipeline from '../pipeline';
 import NumberPool from '../services/number-pool';
 import MessageQueue from '../services/message-queue';
@@ -7,11 +7,8 @@ import MessageFactory from '../services/message-factory';
 import SmsMessage from '../messages/sms-message';
 import MessageEnqueued from '../messages/message-enqueued';
 
-const messageToEvent = (message) => Future.of(
-  new MessageEnqueued({
-    messageId: message.id,
-    vendorId: message.vendorId
-  })
+const messageToEvent = (message) => Observable.just(
+  new MessageEnqueued({message: message})
 );
 
 export default Pipeline({

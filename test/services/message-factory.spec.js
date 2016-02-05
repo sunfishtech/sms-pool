@@ -28,11 +28,11 @@ describe("Given a MessageFactory",function(){
     it("should return an instantiated api",() => expect(factory).to.respondTo('create'));
     
     describe("MessageFactory ~> create", function() {
-      it("should return a Future", () => {
-        expect(factory.create(SmsMessage, 'id', message)).to.respondTo('fork');
+      it("should return an Observable", () => {
+        expect(factory.create(SmsMessage, 'id', message)).to.respondTo('subscribe');
       });
       it("should create an SmsMessage", (done) => {
-        factory.create(SmsMessage, 'id', message).fork((err) => done(err),
+        factory.create(SmsMessage, 'id', message).subscribe(
           (resp) => {
             expect(resp[Typed.typeName]()).to.equal('SmsMessage');
             done();
@@ -40,7 +40,7 @@ describe("Given a MessageFactory",function(){
         );
       });
       it("should generate the id", (done) => {
-        factory.create(SmsMessage, 'id', message).fork((err) => done(err),
+        factory.create(SmsMessage, 'id', message).subscribe(
           (resp) => {
             expect(resp.id).to.equal('12345');
             done();
@@ -48,7 +48,7 @@ describe("Given a MessageFactory",function(){
         );
       });
       it("should fail the future if given bad data", (done) => {
-        factory.create(SmsMessage, 'id', {}).fork(
+        factory.create(SmsMessage, 'id', {}).subscribeOnError(
           (err) => {
             expect(err.toString()).to.contain("Invalid value");
             done();

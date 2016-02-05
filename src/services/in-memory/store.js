@@ -1,4 +1,4 @@
-import R from 'ramda';
+import { Observable } from 'rx';
 
 export default function MemoryStore() {
   // store methods
@@ -6,14 +6,10 @@ export default function MemoryStore() {
   const putMessage = (message) => _store[message.id] = message;
   const getMessage = (id) => _store[id];
 
-  // util
-  const toPromise = val => Promise.resolve(val);
-  const promise = fn => R.compose(toPromise, fn);
-
   return {
-    /* :: {messageId: String, ...} -> Boolean */
-    put: promise(putMessage),
-    /* :: String -> Object */
-    get: promise(getMessage)
+    /* :: SmsMessage -> SmsMessage */
+    put: message => Observable.just(message).do(putMessage).map(_=>message),
+    /* :: String -> SmsMessage */
+    get: id => Observable.just(id).map(getMessage)
   };
 }

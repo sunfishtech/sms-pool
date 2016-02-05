@@ -5,6 +5,7 @@ import { Map } from 'immutable';
 import { SmsApi } from './sms-api';
 import { string, object } from 'joi';
 import { Schema, ensureValidObject } from '../utils';
+import { Observable } from 'rx';
 
 const PlivoConfig = Schema({
   authId: string().required(),
@@ -37,22 +38,23 @@ export default function Plivo(_config = {}) {
   const http = config.http || axios;
 
   return new SmsApi({
-    /* :: () -> Future Error (List String) */
+    /* :: () -> Observable List String */
     getAvailableNumbers: () => {
       const url = endpoint('Number');
       const extractNums = R.compose(R.pluck('number'), R.path(['data', 'objects']));
 
-      return http.get(url, {auth}).then(extractNums);
+      return Observable.fromPromise(http.get(url, {auth}))
+        .map(extractNums);
     },
 
-    /* :: SmsMessage -> Promise String Error */
+    /* :: SmsMessage -> Observable String */
     sendMessage: (message) => {
       const url = endpoint('Message');
       const extractId = R.compose(R.head, R.path(['data', 'message_uuid']));
 
-      return http.post(url, messageToPayload(message), {auth})
-        .then(extractId);
+      return Observable.fromPromise(
+        http.post(url, messageToPayload(message), {auth})
+      ).retry(3).map(extractId);
     }
   });
 }
-

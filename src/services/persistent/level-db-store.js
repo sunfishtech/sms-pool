@@ -1,7 +1,8 @@
 import { string } from 'joi';
-import { Schema, ensureValidObject, callbackToPromise } from '../../utils';
+import { Schema, ensureValidObject } from '../../utils';
 import path from 'path';
 import levelup from 'level';
+import { Observable } from 'rx';
 
 const LevelDbConfig = Schema({
   dataDir: string().default('./data'),
@@ -14,18 +15,20 @@ export default function LevelDbStore(_config = {}) {
   const dbFile = path.join(config.dataDir, config.dbName);
   let _db;
 
-  // store methods
-  const putMessage = (message) =>
-    callbackToPromise(_db.put.bind(_db), message.id, message);
-
-  const getMessage = (id) => callbackToPromise(_db.get.bind(_db), id);
+  /* String -> Object -> Observable Object */
+  const putMessage = (id, message) =>
+    Observable.fromNodeCallback(_db.put.bind(_db))(id, message)
+      .map(_ => message);
+  /* :: String -> Observable Object */
+  const getMessage = id =>
+    Observable.fromNodeCallback(_db.get.bind(_db))(id);
 
   return {
     init: () => _db = levelup(dbFile, {valueEncoding: 'json'}),
     dispose: () => { if (_db) _db.close(); },
-    /* :: {messageId: String, ...} -> Boolean */
-    put: putMessage,
-    /* :: String -> Object */
-    get: getMessage
+    /* :: {id:String, ...} -> Observable Object */
+    put: (message) => putMessage(message.id, message),
+    /* :: String -> Observable Object */
+    get: (id) => getMessage(id)
   };
 }

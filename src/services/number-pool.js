@@ -1,10 +1,10 @@
-import { Reader, Future } from 'ramda-fantasy';
-import { promiseToFuture } from '../utils';
+import { Reader } from 'ramda-fantasy';
 import { List } from 'immutable';
 import NodeRing from 'consistent-hashing';
 import R from 'ramda';
 import { AvailableNumbers } from '../messages';
 import { MemoryCache } from '../services/in-memory';
+import { Observable } from 'rx';
 
 const NP_CACHE_KEY = 'NumberPool.available_numbers';
 
@@ -29,21 +29,16 @@ function createNodeRing(numbers) {
   return new NodeRing(numbers);
 }
 
-/* :: SmsApi -> Future Error AvailableNumbers */
-function fetchAvailableNumbers(smsApi) {
-  return promiseToFuture(smsApi.getAvailableNumbers);
-}
-
 /* :: SmsApi -> Future Error NodeRing */
 function createNumberPool(smsApi, cache) {
   const nums =
     R.ifElse(
       k => cache.has(k) && R.is(Array, cache.get(k)),
-      k => Future.of(cache.get(k)),
-      k => fetchAvailableNumbers(smsApi).map(cacheValue(k, cache))
+      k => Observable.just(cache.get(k)),
+      k => smsApi.getAvailableNumbers().map(cacheValue(k, cache))
     );
 
-  return Future.of(NP_CACHE_KEY).chain(nums).map(createNodeRing);
+  return Observable.just(NP_CACHE_KEY).flatMap(nums).map(createNodeRing);
 }
 
 export default function NumberPool() {
