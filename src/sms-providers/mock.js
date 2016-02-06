@@ -11,6 +11,7 @@ export default function MockProvider() {
       _sentMessages.push(message);
       return Observable.just(uuid.v4());
     },
-    sentMessages: _sentMessages
+    sentMessages: _sentMessages,
+    numbers: numbers
   };
 }

@@ -1,5 +1,6 @@
 import chai from 'chai';
 import NumberPool from '../../src/services/number-pool.js';
+import { NP_CACHE_KEY } from '../../src/services/number-pool.js';
 import { SmsMessage } from '../../src/messages';
 import { MemoryCache } from '../../src/services/in-memory';
 import { Observable } from 'rx';
@@ -43,7 +44,7 @@ describe("Given a NumberPool",function(){
       it("should cache retrieved numbers", (done) => {
         numberPool.availableNumbers().subscribe(
           function(result) {
-            expect(env.cache.get('NumberPool.available_numbers')).to.eql(['a','b','c']);
+            expect(env.cache.get(NP_CACHE_KEY)).to.eql(['a','b','c']);
             done();
           }
         );
@@ -86,6 +87,13 @@ describe("Given a NumberPool",function(){
             }
           );
         });
+      });
+    });
+    describe("NumberPool -> clearCache", function(){
+      it("should clear the cache", () => {
+        env.cache.set(NP_CACHE_KEY, ['1','2']);
+        numberPool.clearCache().subscribe(()=>{});
+        expect(env.cache.has(NP_CACHE_KEY)).to.be.false;
       });
     });
   });

@@ -6,7 +6,7 @@ import { AvailableNumbers } from '../messages';
 import { MemoryCache } from '../services/in-memory';
 import { Observable } from 'rx';
 
-const NP_CACHE_KEY = 'NumberPool.available_numbers';
+export const NP_CACHE_KEY = 'NumberPool.available_numbers';
 
 /* :: NodeRing -> String -> String */
 const lookupNumber = R.curry((key, nodeRing) =>
@@ -53,7 +53,15 @@ export default function NumberPool() {
         new AvailableNumbers({ numbers: List(numbers) })
       ),
       /* :: SmsMessage -> Future Error SmsMessage */
-      appendFromIfMissing: (message) => numberPool.map(ensureFromField(message))
+      appendFromIfMissing: (message) => numberPool.map(ensureFromField(message)),
+      /* :: () -> Boolean */
+      clearCache: () => Observable.create(observer => {
+        const cache = env.cache || _cache;
+        const willRemove = cache.has(NP_CACHE_KEY);
+
+        (env.cache || _cache).remove(NP_CACHE_KEY);
+        observer.onNext(willRemove);
+      })
     };
   });
 }

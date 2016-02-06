@@ -1,5 +1,6 @@
 import chai from 'chai';
 import SmsPool from '../src/sms-pool';
+import { NP_CACHE_KEY } from '../src/services/number-pool';
 
 chai.expect();
 
@@ -73,6 +74,35 @@ describe("Given an SmsPool", () => {
         }, err => done(err)
       );
       pool.sendMessage({to:'you',message:'hi'}).subscribe(()=>{});
+    });
+  });
+  describe("SmsPool ~> availableNumbers", function(){
+    let pool = null;
+    before(() => { pool = SmsPool({provider: { name:'mock_provider' }})});
+    it("should return an Observable", () => {
+      expect(pool.availableNumbers()).to.respondTo('subscribe');
+    });
+    it("should return available numbers", (done) => {
+      pool.availableNumbers().subscribe(
+        res => { 
+          expect(res).to.eql(pool.services.smsApi.numbers);
+          done();
+        }, err => done(err)
+      );
+    });
+  });
+  describe("SmsPool ~> clearNumberPool", function(){
+    let pool = null;
+    before(() => { pool = SmsPool({provider: { name:'mock_provider' }})});
+    it("should clear the number cache", (done) => {
+      pool.services.cache.set(NP_CACHE_KEY, ['a','1','sauce']);
+      pool.clearNumberPool().subscribe(
+        res => {
+          expect(res).to.be.true;
+          expect(pool.services.cache.has(NP_CACHE_KEY)).to.be.false;
+          done();
+        }, err => done(err)
+      );
     });
   });
 });

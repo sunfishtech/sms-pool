@@ -2,6 +2,7 @@ import { SendNextMessage, EnqueueMessage } from './pipelines';
 import { curry } from 'ramda';
 import { createConfig, createServices } from './config';
 import ServiceError from './messages/service-error';
+import NumberPool from './services/number-pool';
 
 const createEnvironment = (services) => services; // should be a record
 
@@ -32,15 +33,20 @@ export default function SmsPool(_config) {
   const svcs = createServices(config);
   const events = svcs.eventBus;
 
-  const executePipeline = curry((pipeline, command) => {
+  const executeComponent = (component) => {
     const env = createEnvironment(svcs);
 
-    return pipeline.run(env)(command);
-  });
+    return component.run(env);
+  };
+
+  const executePipeline = curry((pipeline, command) =>
+    executeComponent(pipeline)(command));
 
   // command handlers
   const sendMessage = executePipeline(SendNextMessage);
   const submitMessage = executePipeline(EnqueueMessage);
+  const getAvailableNumbers = executeComponent(NumberPool()).availableNumbers;
+  const clearNumbers = executeComponent(NumberPool()).clearCache;
 
   const publishEvent = curry((topic, evt) =>
     events.publish(evt, topic)
@@ -73,7 +79,9 @@ export default function SmsPool(_config) {
   return {
     services: svcs,
     events: events,
-    sendMessage: (messageData) => submitMessage(messageData),
+    sendMessage: submitMessage,
+    availableNumbers: () => getAvailableNumbers().map(_ => _.numbers.toJS()),
+    clearNumberPool: () => clearNumbers(),
     dispose: () => disposeServices(svcs)
   };
 }
