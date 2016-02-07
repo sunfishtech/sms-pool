@@ -19,7 +19,7 @@ describe("Given an SmsMessage", function(){
     msg = { to:'2', message:'message' };
   });
   describe("EnqueueMessage", function(){
-    let queue, storage, pipeline;
+    let queue, storage, pipeline, topic, published;
     before(() => reader = EnqueueMessage);
     it("should return a Reader",() => {
       assert(reader.run);
@@ -31,7 +31,10 @@ describe("Given an SmsMessage", function(){
           cache: new MemoryCache(),
           messageQueue: { enqueueMessage: (m) => { queue = m; return Observable.just(m) } },
           messageStore: { put: (m) => { storage = m; return Observable.just(m) } },
-          idGenerator: { next: () => '12345' }
+          idGenerator: { next: () => '12345' },
+          eventBus: {
+            publish: (evt, t) => { topic = t; published = evt; return Observable.just(evt) }
+          }
         };
         pipeline = reader.run(env);
         obs = pipeline(msg);
@@ -86,6 +89,14 @@ describe("Given an SmsMessage", function(){
               expect(storage.id).to.equal(res.message.id);
               done();
             }
+          )
+        });
+        it("publishes the event", (done) => {
+          obs.subscribe(
+            (res) => {
+              expect(published).to.eql(res);
+              done();
+            }, err => done(err)
           )
         });
       });

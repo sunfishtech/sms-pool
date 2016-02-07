@@ -1,5 +1,4 @@
 import chai from 'chai';
-import { Future } from 'ramda-fantasy';
 import { Typed } from 'typed-immutable';
 import { MemoryCache } from '../../src/services/in-memory';
 import { SendNextMessage } from '../../src/pipelines';
@@ -26,7 +25,7 @@ describe("SendNextMessage", function(){
     assert(reader.run);
   });
   describe("when run against an environment", function(){
-    let sent, acked, pipeline, obs, storage;
+    let sent, acked, pipeline, obs, storage, topic, published;
     beforeEach(() => {
       const env = {
         messageQueue: {
@@ -37,7 +36,10 @@ describe("SendNextMessage", function(){
           get: (id) => { return Observable.just({'123':message}[id]) }
         },
         smsApi: { sendMessage: (msg) => { sent = msg; return Observable.just('123456') } },
-        rateLimiter: RateLimiter(1000,1) /* 1000 messages per MS */
+        rateLimiter: RateLimiter(1000,1), /* 1000 messages per MS */
+        eventBus: {
+          publish: (evt, t) => { topic = t; published = evt; return Observable.just(evt) }
+        }
       };
       pipeline = reader.run(env);
       obs = pipeline(message);
@@ -77,6 +79,14 @@ describe("SendNextMessage", function(){
             expect(storage).to.equal(res.message);
             done();
           }
+        )
+      });
+      it("publishes the event", (done) => {
+        obs.subscribe(
+          (res) => {
+            expect(published).to.eql(res);
+            done();
+          }, err => done(err)
         )
       });
     });

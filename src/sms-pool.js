@@ -16,7 +16,6 @@ const disposeServices = (services) =>
   services.forEach((svc) => { if (svc.dispose) svc.dispose(); });
 
 const ERROR_TOPIC = 'errors';
-const MESSAGE_SENDER_TOPIC = 'sentMessages';
 
 /* consider a per-command context that wraps the
    future pipeline and has an 'execute' and 'subscribe'
@@ -48,12 +47,6 @@ export default function SmsPool(_config) {
   const getAvailableNumbers = executeComponent(NumberPool()).availableNumbers;
   const clearNumbers = executeComponent(NumberPool()).clearCache;
 
-  const publishEvent = curry((topic, evt) =>
-    events.publish(evt, topic)
-      .retry(3)
-      .subscribeOnError(err => { throw err; })
-  );
-
   const publishError = err => {
     return events.publish(ERROR_TOPIC, new ServiceError({error: err.message}))
       .subscribeOnError(err => { throw err; });
@@ -61,16 +54,12 @@ export default function SmsPool(_config) {
 
   const listenForEnqueuedMessages = () => {
     svcs.messageQueue.subscribe(
-      message => sendMessage(message)
-        .do(publishEvent(MESSAGE_SENDER_TOPIC))
-        .subscribeOnError(publishError)
-      ,
+      message => sendMessage(message).subscribeOnError(publishError),
       publishError
     );
   };
 
   /* Startup Sequence */
-
   initServices(svcs);
   listenForEnqueuedMessages();
   startServices(svcs);
