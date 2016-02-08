@@ -1,21 +1,17 @@
-import { SendNextMessage, EnqueueMessage } from './pipelines';
+import { SendNextMessage, EnqueueMessage, ReplayInFlightMessages } from './pipelines';
 import { curry } from 'ramda';
 import { createConfig, createServices } from './config';
 import ServiceError from './messages/service-error';
 import NumberPool from './services/number-pool';
+import EVENT_TOPICS from './event-topics';
 
 const createEnvironment = (services) => services; // should be a record
 
 const initServices = (services) =>
   services.forEach((svc) => { if (svc.init) svc.init(); });
 
-const startServices = (services) =>
-  services.forEach((svc) => { if (svc.start) svc.start(); });
-
 const disposeServices = (services) =>
   services.forEach((svc) => { if (svc.dispose) svc.dispose(); });
-
-const ERROR_TOPIC = 'errors';
 
 /* consider a per-command context that wraps the
    future pipeline and has an 'execute' and 'subscribe'
@@ -46,23 +42,31 @@ export default function SmsPool(_config) {
   const submitMessage = executePipeline(EnqueueMessage);
   const getAvailableNumbers = executeComponent(NumberPool()).availableNumbers;
   const clearNumbers = executeComponent(NumberPool()).clearCache;
+  const replayInFlight = executeComponent(ReplayInFlightMessages);
 
   const publishError = err => {
-    return events.publish(ERROR_TOPIC, new ServiceError({error: err.message}))
+    return events.publish(new ServiceError({error: err.message}), EVENT_TOPICS.ERRORS)
       .subscribeOnError(err => { throw err; });
   };
 
   const listenForEnqueuedMessages = () => {
-    svcs.messageQueue.subscribe(
-      message => sendMessage(message).subscribeOnError(publishError),
+    events.subscribe(
+      EVENT_TOPICS.ENQUEUED_MESSAGES,
+      event => sendMessage(event.message).subscribeOnError(publishError),
       publishError
     );
+  };
+
+  const replayInFlightMessages = () => {
+    svcs.messageQueue.inFlightMessages()
+      .flatMap(replayInFlight)
+      .subscribeOnError(publishError);
   };
 
   /* Startup Sequence */
   initServices(svcs);
   listenForEnqueuedMessages();
-  startServices(svcs);
+  replayInFlightMessages();
 
   /* API */
   return {

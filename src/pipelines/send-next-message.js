@@ -5,8 +5,7 @@ import MessageStore from '../services/message-store';
 import MessageSender from '../services/message-sender';
 import EventPublisher from '../services/event-publisher';
 import MessageAccepted from '../messages/message-accepted';
-
-const MESSAGE_SENDER_TOPIC = 'sentMessages';
+import EVENT_TOPICS from '../event-topics';
 
 const messageToEvent = (message) => Observable.just(
   new MessageAccepted({message: message})
@@ -20,6 +19,6 @@ export default Pipeline({
     queue.ackMessage,
     store.storeMessage,
     messageToEvent,
-    evts.publish(MESSAGE_SENDER_TOPIC)
+    evts.publish(EVENT_TOPICS.SENT_MESSAGES)
   ]
 });

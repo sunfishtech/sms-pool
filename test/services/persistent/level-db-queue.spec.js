@@ -1,7 +1,7 @@
 import chai from 'chai';
 import { LevelDbQueue } from '../../../src/services/persistent';
 import db from 'level';
-import { Observer } from 'rx';
+import { Observable } from 'rx';
 
 chai.expect();
 
@@ -18,39 +18,58 @@ describe("Given a LevelDbQueue", function(){
       expect(queue.enqueueMessage({})).to.respondTo('subscribe');
     });
     it("should return the sent message", function(done){
-      queue.enqueueMessage({id:'3',my:'message'}).subscribe(
-        res => {
-          expect(res).to.eql({id:'3',my:'message'});
-          done();
-        }, err => done(err)
-      );
-    });
-    it("should broadcast the message", (done) => {
-      var s = queue.subscribe((message) => {
-        expect(message).to.eql({id:'1', my:'message'});
-        s.dispose();
-        done();
-      }, (err) => done(err));
-      queue.enqueueMessage({id:'1', my:'message'}).subscribe(_=>{}, err => done(err));
+      Observable.just(queue)
+        .flatMap(_ => queue.purge())
+        .flatMap(_ => queue.enqueueMessage({id:'3',my:'message'})).subscribe(
+          res => {
+            expect(res).to.eql({id:'3',my:'message'});
+            done();
+          }, err => done(err)
+        );
     });
     it("should persist the message", (done) => {
-      queue.enqueueMessage({id:'2', my:'message'})
-        .flatMap(_ => queue.isInQueue('2')
-          .do((res) => {
+      Observable.just(queue)
+        .flatMap(_ => queue.purge())
+        .flatMap(_ => queue.enqueueMessage({id:'2', my:'message'}))
+        .flatMap(_ => queue.isInQueue('2'))
+        .subscribe(
+          res => {
             expect(res).to.be.true;
             done();
-          })
-        ).subscribe(_=>{});
+          }, err => done(err)
+        );
     });
     it("should delete the message when acked", (done) => {
-      queue.enqueueMessage({id:'3', my:'message' })
+      Observable.just(queue)
+        .flatMap(_ => queue.purge())
+        .flatMap(_ => queue.enqueueMessage({id:'3', my:'message' }))
         .flatMap(_ => queue.ackMessage({id:'3', my:'message'}))
-        .flatMap(_ => {
-          return queue.isInQueue('3').do((res) => {
+        .flatMap(_ => queue.isInQueue('3'))
+        .subscribe(
+          res => {
             expect(res).to.be.false;
             done();
-          });
-        }).subscribe(_=>{})
+          }, err => done(err)
+        );
+    });
+  });
+  describe("inFlightMessages", function(){
+    it("should return an observable of unacked messages", (done) => {
+      Observable.just(queue)
+        .flatMap(_ => queue.purge())
+        .flatMap(_ => queue.enqueueMessage({id:'a',to:'dave', message:'message'}))        
+        .flatMap(_ => queue.enqueueMessage({id:'b',to:'sam', message:'message'}))
+        .flatMap(_ => queue.enqueueMessage({id:'c',to:'joe', message:'message'}))
+        .flatMap(_ => queue.ackMessage({id:'b'}))
+        .flatMap(_ => queue.inFlightMessages())
+        .map(m => m.id).toArray()
+        .subscribe(
+          res => {
+            expect(res).to.eql(['a','c']);
+            done();
+          }, err => done(err)
+        );
+     
     });
   });
   

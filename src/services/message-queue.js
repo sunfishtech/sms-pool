@@ -11,7 +11,9 @@ export default function MessageQueue() {
 
       /* :: SmsMessage -> Future Error SmsMessage */
       ackMessage: (message) => env.messageQueue
-        .ackMessage(message)
+        .ackMessage(message),
+
+      getInFlightMessages: env.messageQueue.inFlightMessages
     };
   });
 }

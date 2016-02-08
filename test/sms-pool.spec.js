@@ -1,6 +1,7 @@
 import chai from 'chai';
 import SmsPool from '../src/sms-pool';
 import { NP_CACHE_KEY } from '../src/services/number-pool';
+import EVENT_TOPICS from '../src/event-topics';
 
 chai.expect();
 
@@ -56,17 +57,17 @@ describe("Given an SmsPool", () => {
       );
     });
     it("should send enqueued message", (done) => {
-       let s = pool.events.subscribe('sentMessages',
+       let s = pool.events.subscribe(EVENT_TOPICS.SENT_MESSAGES,
         res => {
           s.dispose();
-          expect(pool.services.smsApi.sentMessages[0].status).to.eql('REQUESTED');
+          expect(pool.services.smsApi.sentMessages[0].status).to.eql('ENQUEUED');
           done();
         }, err => done(err)
       );
       pool.sendMessage({to:'you',message:'hi'}).subscribe(()=>{});
     });
     it("should broadcast sent messages", (done) => {
-      let s = pool.events.subscribe('sentMessages',
+      let s = pool.events.subscribe(EVENT_TOPICS.SENT_MESSAGES,
         res => {
           s.dispose();
           expect(res.message.status).to.eql('SENT');

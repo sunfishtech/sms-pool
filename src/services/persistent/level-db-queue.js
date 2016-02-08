@@ -2,7 +2,8 @@ import { string } from 'joi';
 import { Schema, ensureValidObject } from '../../utils';
 import path from 'path';
 import levelup from 'level';
-import { Subject, Observable } from 'rx';
+import { Observable } from 'rx';
+import SmsMessage from '../../messages/sms-message';
 
 const LevelDbConfig = Schema({
   dataDir: string().default('./data'),
@@ -13,16 +14,13 @@ const ensureConfig = ensureValidObject(LevelDbConfig, {});
 export default function LevelDbQueue(_config = {}) {
   const config = ensureConfig(_config);
   const dbFile = path.join(config.dataDir, config.dbName);
-  const subject = new Subject();
   let _db;
-
-  const broadcastMessage = (message) => { subject.onNext(message); return message; };
 
   const enqueue = (message) => {
     const data = message.toJS ? message.toJS() : message;
 
     return Observable.fromNodeCallback(_db.put.bind(_db))(data.id, data)
-      .map(_ => broadcastMessage(message));
+      .map(_ => message);
   };
 
   const isInQueue = (id) =>
@@ -31,29 +29,32 @@ export default function LevelDbQueue(_config = {}) {
       .map(ok => !!ok);
 
   const ack = (message) =>
-    Observable.fromNodeCallback(_db.del.bind(_db))(message.id);
+    Observable.fromNodeCallback(_db.del.bind(_db))(message.id)
+      .map(_ => message);
 
   const purgeQueue = () => Observable.create(observer => {
     _db.createKeyStream()
       .on('data', (key) => _db.del(key))
-      .on('end', () => observer.onNext(true))
+      .on('end', () => { observer.onNext(true); observer.onCompleted(); })
       .on('error', (err) => observer.onError(err));
   });
 
-  const requeueAll = () =>
+  const inFlight = () => Observable.create(observer => {
     _db.createValueStream()
-      .on('data', broadcastMessage);
+      .on('data', (m) => observer.onNext(m))
+      .on('error', (e) => observer.onError(e))
+      .on('end', () => observer.onCompleted());
+  }).map(SmsMessage);
 
   return {
     init: () => _db = levelup(dbFile, {valueEncoding: 'json'}),
-    start: () => requeueAll(),
     dispose: () => { if (_db) _db.close(); },
     /* :: { messageId: String, queue: String } -> Promise { messageId: String, queue: String } */
     enqueueMessage: enqueue,
     /* :: { messageId: String, queue: String } -> Promise Boolean */
     ackMessage: ack,
-    /* :: (SmsMessage -> _) -> (Err -> _) -> (_ -> _) -> Rx.Subscription */
-    subscribe: (onMessage, onErr, onComplete) => subject.subscribe(onMessage, onErr, onComplete),
+    /* :: () -> Observable Message */
+    inFlightMessages: inFlight,
     /* :: String -> Promise Boolean Error */
     isInQueue: isInQueue,
     /* :: () -> Promise Boolean Error */
