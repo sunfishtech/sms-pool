@@ -2,6 +2,7 @@ import R from 'ramda';
 import { Reader, Either } from 'ramda-fantasy';
 import Joi from 'joi';
 import S from 'string';
+import { Typed } from 'typed-immutable';
 
 export function pipeObs(...fns) {
   return function (...args) {
@@ -70,3 +71,9 @@ export const Try = (fn) => {
     return Either.Left(err);
   }
 };
+
+export const isRecordType = R.curry((recordTypeName, candidate = {}) => {
+  const typeName = candidate[Typed.typeName];
+
+  return R.is(Function, typeName) ? typeName.bind(candidate)() === recordTypeName : false;
+});

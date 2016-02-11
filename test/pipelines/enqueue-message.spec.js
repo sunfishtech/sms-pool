@@ -4,6 +4,7 @@ import { MemoryCache } from '../../src/services/in-memory';
 import { EnqueueMessage } from '../../src/pipelines';
 import { SmsMessage, SmsMessageStatus } from '../../src/messages';
 import { Observable } from 'rx';
+import { isRecordType } from '../../src/utils';
 
 chai.expect();
 
@@ -46,7 +47,7 @@ describe("Given an SmsMessage", function(){
         it("returns a MessageEnqueued event", (done) => {
           obs.subscribe(
             (res) => {
-              expect(res[Typed.typeName]()).to.equal('MessageEnqueued');
+              expect(isRecordType('MessageEnqueued',res)).to.be.true;
               done();
             }
           )

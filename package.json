@@ -1,6 +1,6 @@
 {
   "name": "sms-pool",
-  "version": "1.1.1",
+  "version": "1.2.1",
   "description": "Send some sms messages to someone.",
   "main": "lib/index.js",
   "scripts": {
