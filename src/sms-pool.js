@@ -72,6 +72,7 @@ export default function SmsPool(_config) {
 
   /* API */
   return {
+    EVENT_TOPICS: EVENT_TOPICS,
     services: svcs,
     events: events,
     sendMessage: submitMessage,
