@@ -45,7 +45,9 @@ export default function SmsPool(_config) {
   const replayInFlight = executeComponent(ReplayInFlightMessages);
 
   const publishError = err => {
-    return events.publish(new ServiceError({error: err.message}), EVENT_TOPICS.ERRORS)
+    const errMessage = err & err.message ? err.message : err ? err.toString() : 'Unknown Error';
+
+    return events.publish(new ServiceError({error: errMessage}), EVENT_TOPICS.ERRORS)
       .subscribeOnError(err => { throw err; });
   };
 
